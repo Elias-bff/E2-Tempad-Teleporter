@@ -1,0 +1,182 @@
+@name Tempad
+@inputs EGP:wirelink
+@persist Con:array Timeline:array Ply:entity Save:string Return:string Color:vector Anim State Animator:vector
+#V.1.0 By Elias => https://steamcommunity.com/id/eliasbff/
+interval(1)
+runOnChat(1)
+
+Con=lastSaid():lower():explode(" ")
+
+if(first()||dupefinished()){
+    if(!Color){
+        Color=vec(255,100,0)
+    }
+}
+
+if(EGP){
+    EGP:egpBoxOutline(0,vec2(255,255),vec2(490,490)), EGP:egpColor(0,Color), EGP:egpSize(0,2)
+}
+
+function desync(Error:string){
+    if(Error){
+        print(Error)
+    }
+    
+    holoDeleteAll()
+}
+
+function transfer(Space:vector){
+    E=seatSpawn("models/weapons/w_crowbar.mdl",Space,holoEntity(0):angles(),1),E:use(),E:propDelete()
+    
+    if(!owner():keyUse()){
+        desync("")
+    }
+}
+
+function string stringify(Vector:vector){
+    return Vector:toString():explode(" "):concat(","):replace("[",""):replace("]","")
+}
+
+function vector vectorize(String:string){
+    S=String:explode(","),return vec(S[1,string]:toNumber(),S[2,string]:toNumber(),S[3,string]:toNumber())
+}
+
+function string timedoor(Space:string){
+    holoCreate(0,owner():pos()+vec(80,0,0):rotate(owner():angles()),vec(0,0,0),ang(0,owner():angles():yaw(),0),vec(255,255,255),"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl"), holoMaterial(0,"models/wireframe")
+    holoCreate(1,holoEntity(0):pos(),vec(0,0,0),holoEntity(0):angles()+ang(0,0,90),vec(255,255,255),"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl"), holoMaterial(1,"models/props_combine/com_shield001a")
+    holoParent(1,0)
+    holoColor(0,Color)
+    
+    Timeline[1,string]=Space
+    Animator=holoEntity(0):pos()
+    Anim=1
+    State=0
+    
+    return Space
+}
+
+if(Anim==1){
+    State+=0.5
+    
+    holoPos(0,Animator+vec(0,0,clamp(State*3,0,60)))
+    holoScale(0,vec(clamp(State,0,2),clamp(-State,-10,0),clamp(State,0,20)))
+    holoScale(1,vec(clamp(State,0,1.5),clamp(State,0,19.5),clamp(State,0,9.5)))
+    
+    if(State>=60){
+        Anim=0
+    }
+}
+
+if(owner():keyPressed("t")&&owner():keyWalk()){
+    desync("")
+}
+
+if(owner():keyUse()&&owner():keyWalk()&&owner():isFlashlightOn()){
+    timedoor(stringify(owner():aimPos()))
+}
+
+if(owner():keyPressed("g")){
+    timedoor(Save)
+}
+
+if(owner():keyPressed("r")&&owner():keyWalk()){
+    timedoor(Return)
+}
+
+if(Timeline:count()>=1){
+    for(I=1,Timeline:count(),1){
+        if(owner():pos():distance(holoEntity(0):pos())<75){
+            try{
+                POS=vectorize(Timeline[I,string])
+            }catch(E){}
+            
+            try{
+                Ply=findPlayerByName(Timeline[I,string])
+                
+                if(!Ply:pos():isInWorld()){
+                    desync("Timeline lost, location entered invalid.; Automatically closing...")
+                    
+                    break
+                }
+            }catch(E){
+                try{
+                    Ply=findPlayerBySteamID(Timeline[I,string])
+                    
+                    if(!Ply:pos():isInWorld()){
+                        desync("Timeline lost, location entered invalid; Automatically closing...")
+                        
+                        break
+                    }
+                }catch(E){}
+            }
+            
+            if(Ply){
+                print("Signature tracked; Crossing temporal space @:"+Ply:name())
+                
+                transfer(Ply:pos()+vec(-80,0,0):rotate(Ply:angles()))
+            }else{
+                if(!POS:isInWorld()||POS==vec(0,0,0)){
+                    desync("Timeline lost, location entered invalid; Automatically closing...")
+                    
+                    break
+                }
+                
+                print("Timelines overlapping; Crossing temporal space @:"+POS)
+                
+                transfer(POS)
+            }
+        }
+    }
+}
+
+if(chatClk(owner())){
+    switch(Con[1,string]){
+        case "/l",
+            Con[1,string]="/locate"
+            
+            hideChat(1)
+            
+            break
+        case "/r",
+            Con[1,string]="/return"
+            
+            hideChat(1)
+            
+            break
+        default,
+    }
+}
+
+if(chatClk(owner())){
+    switch(Con[1,string]){
+        case "/locate",
+            print("Running program; TimeDoor @:"+Con[2,string])
+            
+            hideChat(1)
+            
+            Return=stringify(owner():pos())
+            Save=timedoor(Con[2,string])
+            #Time=1
+            
+            break
+        case "/return",
+            print("Returning to original timeline; Timedoor @:"+Return)
+            
+            hideChat(1)
+            
+            timedoor(Return)
+            
+            break
+        case "/color",
+            print("Running program; Color set to: "+Con[2,string])
+            
+            hideChat(1)
+
+            Color=vectorize(Con[2,string])
+            holoColor(0,Color)
+            
+            break
+        default,
+    }
+}
+#V.1.0 By Elias => https://steamcommunity.com/id/eliasbff/
